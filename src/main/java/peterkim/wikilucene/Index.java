@@ -83,7 +83,7 @@ public class Index {
 		
 		String aLine;
 		while ((aLine = inputReader.readLine()) != null) {
-			targetMap.put(aLine, false);
+			targetMap.put(aLine.toLowerCase(), false);
 		}
 		
 		inputReader.close();
@@ -107,7 +107,7 @@ public class Index {
 		String aLine;
 		while ((aLine = inputReader.readLine()) != null) {
 			WikiArticle article = gson.fromJson(aLine, WikiArticle.class);
-			if (targetMap.containsKey(article.title)) {
+			if (targetMap.containsKey(article.title.toLowerCase())) {
 				indexArticle(article.id, article.title, article.text);
 				targetMap.put(article.title, true); // indicate article has been indexed
 			}
@@ -115,6 +115,16 @@ public class Index {
 		
 		inputReader.close();
 	}
+	
+	public void checkTargetFulfilled() {
+		System.out.println("Not indexed articles:");
+		for (Map.Entry<String, Boolean> entry : targetMap.entrySet()) {
+			if (!entry.getValue()) {
+				System.out.println(entry.getKey());
+			}
+		}
+	}
+	
 	
 
 	public static void main(String[] args) throws IOException {
@@ -131,12 +141,12 @@ public class Index {
 
 //		String bz2FilePath = "/Users/Peter/Documents/test.xml.bz2";
 		
-		String filterPath = "/Users/Peter/Downloads/squad_articles.txt";
-		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
+		String filterPath = "/if5/wua4nw/open_domain_qa/data/squad_articles.txt";
+		String luceneFolderPath = "/if5/wua4nw/open_domain_qa/data/wikiluceneindex";
 		Index handler = new Index(luceneFolderPath, filterPath);
 		
-//		Collection<File> extractedFiles = FileUtils.listFiles(new File("/if5/wua4nw/open_domain_qa/data/extracted"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
-		Collection<File> extractedFiles = FileUtils.listFiles(new File("/Users/Peter/Documents/wikiextractor/test"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
+		Collection<File> extractedFiles = FileUtils.listFiles(new File("/if5/wua4nw/open_domain_qa/data/extracted"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
+//		Collection<File> extractedFiles = FileUtils.listFiles(new File("/Users/Peter/Documents/wikiextractor/test"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
 		
 		for (File f : extractedFiles) {
 			handler.process(f.getCanonicalPath());
@@ -147,6 +157,8 @@ public class Index {
 		System.out.println("----------------------------------------");
 		System.out.println("Indexing Successful!");
 		
+		handler.checkTargetFulfilled();
+		 
 		//String extractedFilePath = "/Users/Peter/Documents/wikiextractor/test/AA/wiki_00";
 		//String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
 

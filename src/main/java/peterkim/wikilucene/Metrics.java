@@ -14,15 +14,16 @@ import org.apache.lucene.document.Document;
  */
 public class Metrics {
 	public static double getAVP(List<String> idealResult, List<Document> result) {
-		QualityStats qs = new QualityStats(1, 1000); // TODO: anticipated maximal number of relevant hits?
+		QualityStats qs = new QualityStats(result.size(), 1000); // TODO: anticipated maximal number of relevant hits?
 		for (int i = 0; i < result.size(); i++) {
+			System.out.println(i);
 			qs.addResult(i, idealResult.contains(result.get(i).get("title")), 1000);
 		}
 		return qs.getAvp();
 	}
 	
 	public static double getMRR(List<String> idealResult, List<Document> result) {
-		QualityStats qs = new QualityStats(1, 1000); // TODO: anticipated maximal number of relevant hits?
+		QualityStats qs = new QualityStats(result.size(), 1000); // TODO: anticipated maximal number of relevant hits?
 		for (int i = 0; i < result.size(); i++) {
 			qs.addResult(i, idealResult.contains(result.get(i).get("title")), 1000);
 		}

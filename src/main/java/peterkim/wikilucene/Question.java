@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -75,11 +76,9 @@ public class Question {
 		}
 	}
 
-	public List<Document> questionToRelevantDocs(int topN) throws Exception {
+	public void questionToRelevantDocs(int topN) throws Exception {
 		BufferedReader inputReader = null;
 		BufferedWriter outputWriter = null;
-		
-		List<Document> result = null;
 		
 		try {
 			searcher = new IndexSearcher(luceneReader);
@@ -96,9 +95,12 @@ public class Question {
 			inputReader.readLine(); // skip first line
 
 			while ((aLine = inputReader.readLine()) != null) {
+				List<Document> result = new ArrayList<Document>();
+				
 				StringTokenizer tk = new StringTokenizer(aLine, "|");
 				String id = tk.nextToken();
 				String question = escapeSymbols(tk.nextToken());
+				String goldArticle = tk.nextToken();
 
 				System.out.println("Query id=" + id + " => " + question);
 
@@ -121,7 +123,14 @@ public class Question {
 					result.add(d);
 //					System.out.println(text);
 				}
-				System.out.print("\n\n");
+				
+				// calculate search quality metrics
+				System.out.println("NDCG: " + Metrics.calculateNDCG(Arrays.asList(goldArticle), result));
+//						", AVP: " + Metrics.getAVP(Arrays.asList(goldArticle), result) +
+//						", MRR: " + Metrics.getMRR(Arrays.asList(goldArticle), result));
+				System.out.print("------------------");
+				
+				
 			}
 		} finally {
 			if (luceneReader != null)
@@ -135,10 +144,8 @@ public class Question {
 				outputWriter.close();
 			}
 		}
-		return result;
 	}
 
-	
 	private String createQueryString(String qstring) { // TODO: create better query? e.g. where is UCLA? -> UCLA
 		return qstring;
 	}
@@ -164,18 +171,18 @@ public class Question {
 //			System.exit(-1);
 //		}
 
-//		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
-//		String inputPath = "/Users/Peter/Documents/wikiluceneinput/input.txt";
-//		String outputPath = "/Users/Peter/Documents/wikiluceneoutput/output.txt";
-//		
-//		int topN = 2;
-//
-//		Question worker = new Question(luceneFolderPath, inputPath, outputPath);
+		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
+		String inputPath = "/Users/Peter/Documents/wikiluceneinput/input.txt";
+		String outputPath = "/Users/Peter/Documents/wikiluceneoutput/output.txt";
 		
+		int topN = 2;
+
+		Question worker = new Question(luceneFolderPath, inputPath, outputPath);
+		worker.questionToRelevantDocs(topN);
 //		NDCG.calculateNDCG(worker.questionToRelevantDocs(topN));
-		List<String> gold = Arrays.asList("Warsaw");
-		List<String> res1 = Arrays.asList("Warsaw","Poland","Germany");
-		List<String> res2 = Arrays.asList("Warsaw");
+//		List<String> gold = Arrays.asList("Warsaw");
+//		List<String> res1 = Arrays.asList("Warsaw","Poland","Germany");
+//		List<String> res2 = Arrays.asList("Warsaw");
 //		System.out.println(Metrics.calculateNDCG(gold, res1));
 	}
 
