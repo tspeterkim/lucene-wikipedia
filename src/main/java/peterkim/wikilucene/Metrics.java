@@ -1,17 +1,11 @@
 package peterkim.wikilucene;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.lucene.benchmark.quality.QualityStats;
 import org.apache.lucene.document.Document;
 
-/**
- * Calculates the nDCG measure on the recommended resources based on expecting resources
- * 
- * @author Peter Kim
- */
+
 public class Metrics {
 	public static double getAVP(List<String> idealResult, List<Document> result) {
 		QualityStats qs = new QualityStats(result.size(), 1000); // TODO: anticipated maximal number of relevant hits?
@@ -34,13 +28,13 @@ public class Metrics {
 	 *
 	 * @return the NDCG for the given data
 	 */	
-	public static double calculateNDCG(List<String> idealResult, List<Document> result) {
-		double dcg = 0;
-		double idcg = calculateIDCG(result);
+	public static double calculateNDCG(int x, List<String> idealResult, List<Document> result) {
+		double idcg = calculateIDCG(x);
 		if (idcg == 0)
 			return 0;
 
-		for (int i = 0; i < result.size(); i++) {
+		double dcg = 0;
+		for (int i = 0; i < Math.min(x, result.size()); i++) {
 			int rel = 1;
 
 			if (!idealResult.contains(result.get(i).get("title")))
@@ -57,9 +51,9 @@ public class Metrics {
 	 * @param n size of the expected resource list
 	 * @return iDCG
 	 */
-	private static double calculateIDCG(List<Document> result) {
+	private static double calculateIDCG(int x) {
 		double idcg = 0;
-		for (int i = 0; i < result.size(); i++)
+		for (int i = 0; i < x; i++)
 			idcg += (Math.log(2) / Math.log(i + 2));
 		return idcg;
 	}

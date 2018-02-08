@@ -2,21 +2,14 @@ package peterkim.wikilucene;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.HiddenFileFilter;
 import org.apache.commons.io.filefilter.TrueFileFilter;
@@ -37,7 +30,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
-import org.xml.sax.SAXException;
 
 //import info.bliki.wiki.dump.IArticleFilter;
 //import info.bliki.wiki.dump.Siteinfo;
@@ -81,9 +73,10 @@ public class Index {
 		// Initialize filter titles
 		BufferedReader inputReader = new BufferedReader(new FileReader(new File(filterPath)));
 		
+		// Build target article map
 		String aLine;
 		while ((aLine = inputReader.readLine()) != null) {
-			targetMap.put(aLine.toLowerCase(), false);
+			targetMap.put(aLine, false);
 		}
 		
 		inputReader.close();
@@ -91,7 +84,6 @@ public class Index {
 	}
 
 	public void indexArticle(int id, String title, String text) throws IOException {
-		System.out.println("----------------------------------------");
 		System.out.println("Indexing " + title + " (text length: " + text.length() + ") ...");
 		
 		Document doc = new Document();
@@ -107,7 +99,7 @@ public class Index {
 		String aLine;
 		while ((aLine = inputReader.readLine()) != null) {
 			WikiArticle article = gson.fromJson(aLine, WikiArticle.class);
-			if (targetMap.containsKey(article.title.toLowerCase())) {
+			if (targetMap.containsKey(article.title)) {
 				indexArticle(article.id, article.title, article.text);
 				targetMap.put(article.title, true); // indicate article has been indexed
 			}
@@ -141,11 +133,14 @@ public class Index {
 
 //		String bz2FilePath = "/Users/Peter/Documents/test.xml.bz2";
 		
-		String filterPath = "/if5/wua4nw/open_domain_qa/data/squad_articles.txt";
-		String luceneFolderPath = "/if5/wua4nw/open_domain_qa/data/wikiluceneindex";
+		String filterPath = args[0];
+//		String filterPath = "/if5/wua4nw/open_domain_qa/data/squad_articles.txt";
+		String luceneFolderPath = args[1];
+//		String luceneFolderPath = "/if5/wua4nw/open_domain_qa/data/wikiluceneindex";
+		String extractedPath = args[2];
 		Index handler = new Index(luceneFolderPath, filterPath);
 		
-		Collection<File> extractedFiles = FileUtils.listFiles(new File("/if5/wua4nw/open_domain_qa/data/extracted"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
+		Collection<File> extractedFiles = FileUtils.listFiles(new File(extractedPath), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
 //		Collection<File> extractedFiles = FileUtils.listFiles(new File("/Users/Peter/Documents/wikiextractor/test"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
 		
 		for (File f : extractedFiles) {

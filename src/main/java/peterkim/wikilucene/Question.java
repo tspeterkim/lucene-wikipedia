@@ -37,6 +37,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.DefaultSimilarity;
+import org.apache.lucene.search.similarities.TFIDFSimilarity;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
@@ -48,6 +49,9 @@ public class Question {
 	private Analyzer analyzer;
 	private IndexSearcher searcher;
 	private IndexReader luceneReader;
+	
+	private int totalNumQuery = 0;
+	private double totalNDCG = 0.0;
 
 	public Question(String luceneFolderPath, String inputPath, String outputPath) {
 		this.inputPath = inputPath;
@@ -82,7 +86,10 @@ public class Question {
 		
 		try {
 			searcher = new IndexSearcher(luceneReader);
-			searcher.setSimilarity(new BM25Similarity());
+			
+//			searcher.setSimilarity(new BM25Similarity());
+			searcher.setSimilarity(new DefaultSimilarity()); // default is TFIDF
+			
 			inputReader = new BufferedReader(new InputStreamReader(new FileInputStream(inputPath)));
 
 			File outputFileTest = new File(outputPath);
@@ -92,28 +99,28 @@ public class Question {
 			outputWriter.flush();
 
 			String aLine;
-			inputReader.readLine(); // skip first line
+//			inputReader.readLine(); // skip first line
 
 			while ((aLine = inputReader.readLine()) != null) {
 				List<Document> result = new ArrayList<Document>();
-				
+
 				StringTokenizer tk = new StringTokenizer(aLine, "|");
 				String id = tk.nextToken();
 				String question = escapeSymbols(tk.nextToken());
 				String goldArticle = tk.nextToken();
 
-				System.out.println("Query id=" + id + " => " + question);
+				System.out.println("Query id=" + id + " => " + question + ", A: " + goldArticle);
 
 				String qstring = createQueryString(question);
 				QueryParser parser = new QueryParser("text", analyzer);
-				Query query = parser.parse("title:(" + qstring + ") OR text:(" + qstring + ")");
+				Query query = parser.parse("title:(" + QueryParser.escape(qstring) + ") OR text:(" + QueryParser.escape(qstring) + ")");
 				
 				TopScoreDocCollector collector = TopScoreDocCollector.create(topN, true);
 				searcher.search(query, collector);
 				ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
-				System.out.println("Found " + hits.length + " articles");
-				for (int i = 0; i < hits.length; i++) {
+				System.out.println("Found " + hits.length + " articles. Showing top 10:");
+				for (int i = 0; i < Math.min(hits.length, 10); i++) {
 					int docId = hits[i].doc;
 					Document d = searcher.doc(docId);
 					String title = d.get("title");
@@ -125,10 +132,15 @@ public class Question {
 				}
 				
 				// calculate search quality metrics
-				System.out.println("NDCG: " + Metrics.calculateNDCG(Arrays.asList(goldArticle), result));
+				double ndcg = Metrics.calculateNDCG(5, Arrays.asList(goldArticle), result);
+				System.out.println("NDCG@" + Math.min(5, result.size()) + ": " + ndcg);
 //						", AVP: " + Metrics.getAVP(Arrays.asList(goldArticle), result) +
 //						", MRR: " + Metrics.getMRR(Arrays.asList(goldArticle), result));
-				System.out.print("------------------");
+				
+				totalNumQuery++;
+				totalNDCG += ndcg;
+				
+				System.out.println("------------------");
 				
 				
 			}
@@ -146,6 +158,10 @@ public class Question {
 		}
 	}
 
+	public void showRankStats() {
+		System.out.println("Avg. NDCG for " + totalNumQuery + " queries = " + (totalNDCG / totalNumQuery));
+	}
+	
 	private String createQueryString(String qstring) { // TODO: create better query? e.g. where is UCLA? -> UCLA
 		return qstring;
 	}
@@ -160,7 +176,6 @@ public class Question {
 				.replace(":", " ").replace("\\", " ").replace("/", " ");
 	}
 
-
 	public static void main(String[] args) throws Exception {
 //		if (args.length != 4) {
 //			// "java -cp lucene-wikipedia-0.0.1-jar-with-dependencies.jar markpeng.wiki.QuestionToWiki /home/uitox/wiki/lucene-wiki-index validation_set.tsv lucene_top10_nolengthnorm_or_submit.csv"
@@ -171,14 +186,20 @@ public class Question {
 //			System.exit(-1);
 //		}
 
-		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
-		String inputPath = "/Users/Peter/Documents/wikiluceneinput/input.txt";
-		String outputPath = "/Users/Peter/Documents/wikiluceneoutput/output.txt";
+		String luceneFolderPath = args[0];
+		String inputPath = args[1];
+		String outputPath = args[2];
 		
-		int topN = 2;
+//		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
+//		String inputPath = "/Users/Peter/Documents/wikiluceneinput/input.txt";
+//		String outputPath = "/Users/Peter/Documents/wikiluceneoutput/output.txt";
+//		
+//		int topN = 100;
+		int topN = Integer.parseInt(args[3]);
 
 		Question worker = new Question(luceneFolderPath, inputPath, outputPath);
 		worker.questionToRelevantDocs(topN);
+		worker.showRankStats();
 //		NDCG.calculateNDCG(worker.questionToRelevantDocs(topN));
 //		List<String> gold = Arrays.asList("Warsaw");
 //		List<String> res1 = Arrays.asList("Warsaw","Poland","Germany");
