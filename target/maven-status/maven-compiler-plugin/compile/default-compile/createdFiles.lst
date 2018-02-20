@@ -1,6 +1,7 @@
 peterkim/wikilucene/WikiArticle.class
 peterkim/wikilucene/Index.class
 peterkim/wikilucene/Index$1.class
+peterkim/wikilucene/EntryPoint.class
 peterkim/wikilucene/Metrics.class
 peterkim/wikilucene/Question.class
 peterkim/wikilucene/Question$1.class

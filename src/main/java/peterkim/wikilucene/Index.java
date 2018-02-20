@@ -79,10 +79,52 @@ public class Index {
 			targetMap.put(aLine, false);
 		}
 		
+		if (!targetMap.isEmpty())
+			System.out.println("Filtering articles...");
+		
 		inputReader.close();
 
 	}
 
+	
+	public void indexParagraph(int id, String title, String text) throws IOException {
+		System.out.println("Indexing " + title + " (text length: " + text.length() + ") ...");
+		
+		Document doc = new Document();
+		doc.add(new IntField("id", id, Field.Store.YES));
+		doc.add(new TextField("title", title, Field.Store.YES));
+		doc.add(new TextField("paragraph", text, Field.Store.YES));
+		indexWriter.addDocument(doc);
+	}
+	
+	
+	public void processParagraph(String filePath) throws IOException {
+		BufferedReader inputReader = new BufferedReader(new FileReader(new File(filePath)));
+		
+		String aLine;
+		while ((aLine = inputReader.readLine()) != null) {
+			WikiArticle article = gson.fromJson(aLine, WikiArticle.class);
+			if (targetMap.isEmpty()) { // no filtering i.e. index everything
+				for (String pg : article.splitParagraph()) {
+//					System.out.println(pg);
+					indexParagraph(article.id, article.title, pg);
+				}
+				continue;
+			}
+			
+			if (targetMap.containsKey(article.title)) {
+				for (String pg : article.splitParagraph()) {
+//					System.out.println(pg);
+					indexParagraph(article.id, article.title, pg);
+				}
+//				indexArticle(article.id, article.title, article.text);
+				targetMap.put(article.title, true); // indicate article has been indexed
+			}
+		}
+		
+		inputReader.close();
+	}
+	
 	public void indexArticle(int id, String title, String text) throws IOException {
 		System.out.println("Indexing " + title + " (text length: " + text.length() + ") ...");
 		
@@ -93,12 +135,17 @@ public class Index {
 		indexWriter.addDocument(doc);
 	}
 	
-	public void process(String filePath) throws IOException {
+	public void processArticle(String filePath) throws IOException {
 		BufferedReader inputReader = new BufferedReader(new FileReader(new File(filePath)));
 		
 		String aLine;
 		while ((aLine = inputReader.readLine()) != null) {
 			WikiArticle article = gson.fromJson(aLine, WikiArticle.class);
+			if (targetMap.isEmpty()) { // no filtering i.e. index everything
+				indexArticle(article.id, article.title, article.text); 
+				continue;
+			}
+			
 			if (targetMap.containsKey(article.title)) {
 				indexArticle(article.id, article.title, article.text);
 				targetMap.put(article.title, true); // indicate article has been indexed
@@ -117,7 +164,6 @@ public class Index {
 		}
 	}
 	
-	
 
 	public static void main(String[] args) throws IOException {
 		// java -cp lucene-wikipedia-0.0.1-jar-with-dependencies.jar
@@ -134,17 +180,24 @@ public class Index {
 //		String bz2FilePath = "/Users/Peter/Documents/test.xml.bz2";
 		
 		String filterPath = args[0];
-//		String filterPath = "/if5/wua4nw/open_domain_qa/data/squad_articles.txt";
+//		String filterPath = "/Users/Peter/Documents/input.txt";
 		String luceneFolderPath = args[1];
-//		String luceneFolderPath = "/if5/wua4nw/open_domain_qa/data/wikiluceneindex";
+//		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
 		String extractedPath = args[2];
+//		String extractedPath = "/Users/Peter/Documents/wikiextractor/test";
 		Index handler = new Index(luceneFolderPath, filterPath);
+		
+		boolean indexParagraph = (args[3].equals("t")); // t for true
+//		boolean indexParagraph = false;
 		
 		Collection<File> extractedFiles = FileUtils.listFiles(new File(extractedPath), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
 //		Collection<File> extractedFiles = FileUtils.listFiles(new File("/Users/Peter/Documents/wikiextractor/test"), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
 		
 		for (File f : extractedFiles) {
-			handler.process(f.getCanonicalPath());
+			if (!indexParagraph)
+				handler.processArticle(f.getCanonicalPath());
+			else
+				handler.processParagraph(f.getCanonicalPath());
 		}
 		
 		handler.indexWriter.close();

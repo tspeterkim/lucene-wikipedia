@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -43,19 +44,24 @@ import org.apache.lucene.util.Version;
 
 public class Question {
 
-	private String inputPath;
-	private String outputPath;
+	private boolean useBM25;
+	private int topN;
 
 	private Analyzer analyzer;
 	private IndexSearcher searcher;
+	private IndexSearcher searcherPara;
 	private IndexReader luceneReader;
-	
+	private IndexReader luceneReaderPara;
+		
 	private int totalNumQuery = 0;
+	private int badSearchCount = 0;
+	private double totalRR = 0.0;
 	private double totalNDCG = 0.0;
+	private ArrayList<Double> reciRanks = new ArrayList<Double>();
 
-	public Question(String luceneFolderPath, String inputPath, String outputPath) {
-		this.inputPath = inputPath;
-		this.outputPath = outputPath;
+	public Question(String luceneFolderPath, String luceneParaFolderPath, int topN, boolean useBM25) {
+		this.topN = topN;
+		this.useBM25 = useBM25;
 
 		try {
 			analyzer = new Analyzer() {
@@ -74,92 +80,120 @@ public class Question {
 			};
 
 			luceneReader = DirectoryReader.open(FSDirectory.open(new File(luceneFolderPath)));
+			luceneReaderPara = DirectoryReader.open(FSDirectory.open(new File(luceneParaFolderPath)));
 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
+	
 
-	public void questionToRelevantDocs(int topN) throws Exception {
-		BufferedReader inputReader = null;
-		BufferedWriter outputWriter = null;
+	public ArrayList<ArrayList<String>> questionToRelevantPgs(ArrayList<String> queries) throws Exception {
+		
+		ArrayList<ArrayList<String>> finalResults = new ArrayList<ArrayList<String>>();
 		
 		try {
 			searcher = new IndexSearcher(luceneReader);
 			
-//			searcher.setSimilarity(new BM25Similarity());
-			searcher.setSimilarity(new DefaultSimilarity()); // default is TFIDF
+			if (this.useBM25)
+				searcher.setSimilarity(new BM25Similarity());
+			else
+				searcher.setSimilarity(new DefaultSimilarity()); // default is TFIDF
 			
-			inputReader = new BufferedReader(new InputStreamReader(new FileInputStream(inputPath)));
-
-			File outputFileTest = new File(outputPath);
-			outputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputPath, false)));
-			outputWriter.write("id|docs");
-			outputWriter.newLine();
-			outputWriter.flush();
-
-			String aLine;
-//			inputReader.readLine(); // skip first line
-
-			while ((aLine = inputReader.readLine()) != null) {
+			for (String q : queries) {
 				List<Document> result = new ArrayList<Document>();
 
-				StringTokenizer tk = new StringTokenizer(aLine, "|");
+				StringTokenizer tk = new StringTokenizer(q, "|");
 				String id = tk.nextToken();
 				String question = escapeSymbols(tk.nextToken());
 				String goldArticle = tk.nextToken();
 
-				System.out.println("Query id=" + id + " => " + question + ", A: " + goldArticle);
+				System.out.println("Query id=" + id + " => " + question + ", Gold Article: " + goldArticle);
 
 				String qstring = createQueryString(question);
 				QueryParser parser = new QueryParser("text", analyzer);
 				Query query = parser.parse("title:(" + QueryParser.escape(qstring) + ") OR text:(" + QueryParser.escape(qstring) + ")");
 				
-				TopScoreDocCollector collector = TopScoreDocCollector.create(topN, true);
+				TopScoreDocCollector collector = TopScoreDocCollector.create(this.topN, true);
 				searcher.search(query, collector);
 				ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
-				System.out.println("Found " + hits.length + " articles. Showing top 10:");
-				for (int i = 0; i < Math.min(hits.length, 10); i++) {
+				System.out.println("Found " + hits.length + " articles.");
+				for (int i = 0; i < hits.length; i++) {
 					int docId = hits[i].doc;
 					Document d = searcher.doc(docId);
-					String title = d.get("title");
-					String text = d.get("text");
-					double score = hits[i].score;
-					System.out.println((i + 1) + ". ("+docId+") title: " + title + ", score: " + score);
+//					String title = d.get("title");
+//					double score = hits[i].score;
+//					System.out.println((i + 1) + ". ("+docId+") title: " + title + ", score: " + score);
 					result.add(d);
-//					System.out.println(text);
 				}
 				
 				// calculate search quality metrics
 				double ndcg = Metrics.calculateNDCG(5, Arrays.asList(goldArticle), result);
-				System.out.println("NDCG@" + Math.min(5, result.size()) + ": " + ndcg);
-//						", AVP: " + Metrics.getAVP(Arrays.asList(goldArticle), result) +
-//						", MRR: " + Metrics.getMRR(Arrays.asList(goldArticle), result));
+				double rr = Metrics.getRR(Arrays.asList(goldArticle), result);
+				if (rr == 0.0) {
+					badSearchCount++;
+				}
+				reciRanks.add(rr);
+				System.out.println("NDCG@" + Math.min(5, result.size()) + ": " + ndcg + ", Reciprocal Rank (RR): " + rr);
 				
 				totalNumQuery++;
 				totalNDCG += ndcg;
+				totalRR += rr;
+				
+				System.out.println("Searching paragraphs...");
+				
+				searcherPara = new IndexSearcher(luceneReaderPara);
+				searcherPara.setSimilarity(new DefaultSimilarity());
+				
+				QueryParser parserPara = new QueryParser("paragraph", analyzer);
+				
+				String qp = "(";
+				for (Document d : result) {
+					qp += "title:(" + QueryParser.escape(d.get("title"))+ ") OR ";
+				}
+				qp = qp.substring(0, qp.length() - 4); // delete the last OR clause
+				qp += ") AND paragraph:(" + QueryParser.escape(qstring) + ")";
+//				System.out.println(qp);
+				Query queryPara = parserPara.parse(qp);
+				
+				TopScoreDocCollector collectorPara = TopScoreDocCollector.create(this.topN, true);
+				searcherPara.search(queryPara, collectorPara);
+				ScoreDoc[] hitsPara = collectorPara.topDocs().scoreDocs;
+
+				System.out.println("Found " + hitsPara.length + " paragraphs.");
+				ArrayList<String> pgs = new ArrayList<String>();
+				for (int i = 0; i < hitsPara.length; i++) {
+					int docId = hitsPara[i].doc;
+					Document d = searcherPara.doc(docId);
+//					String title = d.get("title");
+					pgs.add(d.get("paragraph"));
+//					double score = hitsPara[i].score;
+//					System.out.println((i + 1) + ". title: " + title + ", pg: " + pg + ", score: " + score);
+//					result.add(d);
+//					System.out.println(text);
+				}
+				finalResults.add(pgs);
 				
 				System.out.println("------------------");
-				
-				
 			}
+			
 		} finally {
-			if (luceneReader != null)
-				luceneReader.close();
-
-			if (inputReader != null)
-				inputReader.close();
-
-			if (outputWriter != null) {
-				outputWriter.flush();
-				outputWriter.close();
-			}
+//			if (luceneReader != null)
+//				luceneReader.close();
+//			
+//			if (luceneReaderPara != null)
+//				luceneReaderPara.close();
 		}
+		
+		return finalResults;
 	}
 
 	public void showRankStats() {
 		System.out.println("Avg. NDCG for " + totalNumQuery + " queries = " + (totalNDCG / totalNumQuery));
+		System.out.println("MRR for " + totalNumQuery + " queries = " + (totalRR / totalNumQuery));
+		System.out.println("Min RR = " + Collections.min(reciRanks) + ", Max RR = " + Collections.max(reciRanks));
+		System.out.println("Bad Search Count = " + badSearchCount);
 	}
 	
 	private String createQueryString(String qstring) { // TODO: create better query? e.g. where is UCLA? -> UCLA
@@ -187,19 +221,23 @@ public class Question {
 //		}
 
 		String luceneFolderPath = args[0];
-		String inputPath = args[1];
-		String outputPath = args[2];
+		String luceneParaFolderPath = args[1];
+		String inputPath = args[2];
+		String outputPath = args[3];
+		int topN = Integer.parseInt(args[4]);
+		boolean useBM25 = (args[5].equals("t")); // t for true
 		
 //		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
+//		String luceneParaFolderPath = "/Users/Peter/Documents/wikiluceneindexpara";
 //		String inputPath = "/Users/Peter/Documents/wikiluceneinput/input.txt";
 //		String outputPath = "/Users/Peter/Documents/wikiluceneoutput/output.txt";
-//		
-//		int topN = 100;
-		int topN = Integer.parseInt(args[3]);
+//		int topN = 2;
+//		boolean useBM25 = true;
 
-		Question worker = new Question(luceneFolderPath, inputPath, outputPath);
-		worker.questionToRelevantDocs(topN);
-		worker.showRankStats();
+//		Question worker = new Question(luceneFolderPath, luceneParaFolderPath, topN, useBM25);
+//		worker.questionToRelevantPgs();
+//		worker.docsToRelevantParagraphs(topN, false); // use tfidf for paragraph search
+//		worker.showRankStats();
 //		NDCG.calculateNDCG(worker.questionToRelevantDocs(topN));
 //		List<String> gold = Arrays.asList("Warsaw");
 //		List<String> res1 = Arrays.asList("Warsaw","Poland","Germany");
