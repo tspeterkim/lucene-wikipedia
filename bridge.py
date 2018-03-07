@@ -12,7 +12,7 @@ def processQueries(qlist):
 
 def main():
     # test code. should call this module only through processQueries(qlist)
-    qlist = ["57210|Which pop group allowed Madonna to sing a cover of their song Gimme! Gimme! Gimme!|Madonna (entertainer)", "57211|What is autism?|Autism"]
+    qlist = ["57210|Which pop group allowed Madonna to sing a cover of their song Gimme! Gimme! Gimme!|Madonna (entertainer)|paragraph", "57211|What is autism?|Autism|paragraph"]
     print(processQueries(qlist))
 
 if __name__== "__main__":
