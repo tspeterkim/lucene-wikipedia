@@ -1,36 +1,53 @@
 package peterkim.wikilucene;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import py4j.GatewayServer;
 
 public class EntryPoint {
 	
 	private Question worker;
 	
-	public EntryPoint(String luceneFolderPath, String luceneParaFolderPath, int topN, boolean useBM25, double threshold) {
-		worker = new Question(luceneFolderPath, luceneParaFolderPath, topN, useBM25, threshold);
+	public EntryPoint(String dataset, String luceneFolderPath, String luceneSentFolderPath, int topNArticle, int topNSent, String articleSimilarity, String sentSimilarity, int context_a, int context_b, boolean calculateMetrics) {
+//		worker = new Question(luceneFolderPath, luceneSentFolderPath, topN, useBM25, showRankResults, threshold);
+		worker = new Question(dataset, luceneFolderPath, luceneSentFolderPath, topNArticle, topNSent, articleSimilarity, sentSimilarity, context_a, context_b, calculateMetrics);
 	}
 	
-	public ArrayList<ArrayList<String>> processQueries(ArrayList<String> queries) throws Exception {
-		ArrayList<ArrayList<String>> r = worker.questionToRelevantPgs(queries);
-		worker.showRankStats();
+	public HashMap<String, List<List<String>>> processQueries(List<String> queries) throws Exception {
+		HashMap<String, List<List<String>>> r = worker.questionToRelevantSents(queries);
 		return r;
 	}
 	
+	public void updateParams(HashMap<String, String> config) {
+		worker.updateParams(config);
+	}
+	
 	public static void main(String[] args) {
-//		String luceneFolderPath = args[0];
-//		String luceneParaFolderPath = args[1];
-//		int topN = Integer.parseInt(args[2]);;
-//		boolean useBM25 = (args[3].equals("t"));
-//		double threshold = Double.parseDouble(args[4]);
+		String dataset = args[0];
+		String luceneFolderPath = args[1];
+		String luceneSentFolderPath = args[2];
+		int topNArticle = Integer.parseInt(args[3]);
+		int topNSent = Integer.parseInt(args[4]);
+		String articleSimilarity = args[5];
+		String sentSimilarity = args[6];
+		int context_a = Integer.parseInt(args[7]);
+		int context_b = Integer.parseInt(args[8]);
+		boolean calculateMetrics = args[9].equals("t");
 		
-		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
-		String luceneParaFolderPath = "/Users/Peter/Documents/wikiluceneindexpara";
-		int topN = 2;
-		boolean useBM25 = true;
-		double threshold = 0.9;
+//		String dataset = "quqsart"
+//		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindex";
+//		String luceneSentFolderPath = "/Users/Peter/Documents/wikiluceneindexsent";
+//		int topNArticle = 2;
+//		int topNSent = 3;
+//		String articleSimilarity = "tf25";
+//		String sentSimilarity = "simple";
+//		int context_a = 2;
+//		int context_b = 1;
+//		boolean calculateMetrics = false;
 		
-		GatewayServer gatewayServer = new GatewayServer(new EntryPoint(luceneFolderPath, luceneParaFolderPath, topN, useBM25, threshold));
+		GatewayServer gatewayServer = new GatewayServer(new EntryPoint(dataset, luceneFolderPath, luceneSentFolderPath, topNArticle, topNSent, articleSimilarity, sentSimilarity, context_a, context_b, calculateMetrics));
         gatewayServer.start();
         System.out.println("Gateway server started");
 //        gatewayServer.shutdown();

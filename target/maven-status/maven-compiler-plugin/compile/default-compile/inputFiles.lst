@@ -1,5 +1,11 @@
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/Metrics.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/Question.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/MyTFIDFSimilarity.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/TriviaQueryList.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/WikiArticle.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/EntryPoint.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/QuasartArticle.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/MyAnalyzer.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/QuasartQuery.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/MySentenceSimilarity.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/Index.java

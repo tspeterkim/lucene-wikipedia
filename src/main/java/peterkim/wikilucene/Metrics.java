@@ -28,6 +28,17 @@ public class Metrics {
 		return rr;
 	}
 	
+	public static double getRR(int min, List<Integer> result) {
+		double rr = 0.0;
+		for (int i = 1; i <= result.size(); i++) {
+			if (min == result.get(i-1)) {
+				rr = 1.0 / i;
+				break;
+			}
+		}
+		return rr;
+	}
+	
 	public static double getParaRR(LevensteinDistance LD, double threshold, String goldPara, List<String> result) {
 		double rr = 0.0;
 		for (int i = 1; i <= result.size(); i++) {
