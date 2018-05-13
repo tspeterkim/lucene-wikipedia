@@ -1,4 +1,5 @@
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/Metrics.java
+/Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/MySentenceLengthSimilarity.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/Question.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/MyTFIDFSimilarity.java
 /Users/Peter/Documents/lucene-wikipedia/src/main/java/peterkim/wikilucene/TriviaQueryList.java

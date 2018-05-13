@@ -151,10 +151,19 @@ public class Index {
 				title = article.title;
 			} else if (dataset.equals("quasart")) {
 				QuasartArticle qart = gson.fromJson(aLine, QuasartArticle.class);
-				sents = qart.getSentences();
-				id = quasartIndex;
-				title = Integer.toString(quasartIndex);
-				quasartIndex++;
+				for (List<String> qa : qart.contexts) {
+					int i = 0;
+					for (String sent : splitSentence(qa.get(1))) {
+						indexSentence(quasartIndex, i, sent);
+						i++;
+					}
+					totalIndexedItems++;
+					System.out.println("Indexed " + quasartIndex + ". " + totalIndexedItems + " items indexed.");
+					quasartIndex++;
+					
+				}
+				continue;
+
 			} else if (dataset.equals("searchqa")) {
 				StringTokenizer tk = new StringTokenizer(aLine, "|||");
 				String rawtext = tk.nextToken();
@@ -290,8 +299,8 @@ public class Index {
 				text = wart.text;
 			} else if (dataset.equals("quasart")) {
 				QuasartArticle qart = gson.fromJson(aLine, QuasartArticle.class);
-				for (List<String> qa : qart.contexts) {
-					indexArticle(quasartIndex, Integer.toString(quasartIndex), qa.get(1));
+				for  (List<String> qs : qart.contexts) {
+					indexArticle(quasartIndex, Integer.toString(quasartIndex), qs.get(1));
 					quasartIndex++;
 				}
 				continue;
@@ -336,17 +345,17 @@ public class Index {
 	
 
 	public static void main(String[] args) throws IOException {
-//		String filterPath = args[0];
-//		String luceneFolderPath = args[1];
-//		String extractedPath = args[2];
-//		String dataset = args[3];
-//		boolean indexSentence = (args[4].equals("t"));
+		String filterPath = args[0];
+		String luceneFolderPath = args[1];
+		String extractedPath = args[2];
+		String dataset = args[3];
+		boolean indexSentence = (args[4].equals("t"));
 		
-		String filterPath = "/Users/Peter/Documents/input.txt";
-		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindexsent";
-		String extractedPath = "/Users/Peter/Documents/wikiextractor/test/AA";
-		String dataset = "squad"; // squad, quasart, triviaqa, searchqa
-		boolean indexSentence = true;
+//		String filterPath = "/Users/Peter/Documents/input.txt";
+//		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindexsent";
+//		String extractedPath = "/Users/Peter/Documents/wikiextractor/test/AA";
+//		String dataset = "squad"; // squad, quasart, triviaqa, searchqa
+//		boolean indexSentence = true;
 		
 		System.out.println("[ Indexing " + (indexSentence ? "sentences" : "articles") + " for " + dataset + " dataset ]");
 		
