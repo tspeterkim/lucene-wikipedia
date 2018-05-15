@@ -12,6 +12,6 @@ public class MySentenceLengthSimilarity extends SimilarityBase {
 
 	@Override
 	public String toString() {
-		return "My Sentence";
+		return "My Sentence Length Similarity";
 	}
 }
