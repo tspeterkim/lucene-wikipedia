@@ -4,7 +4,7 @@ This Lucene-based index for QA datasets retrieves a multi-sentence context given
 
 ## Indexing
 
-For each dataset, we create two indices: 1) an article-level index that has the fields (article ID, article title, article text), 2) a sentence-level index that has the fields [article ID, sentence ID, sentence text). This second sentence index is created by splitting the article text into sentences (using openNLP sentence splitter) and labeling each with an incrementing sentence ID.
+For each dataset, we create two indices: 1) an article-level index that has the fields (article ID, article title, article text), 2) a sentence-level index that has the fields (article ID, sentence ID, sentence text). This second sentence index is created by splitting the article text into sentences (using OpenNLP sentence splitter) and labeling each with an incrementing sentence ID.
 
 ### SQuAD (Open)
 
@@ -20,7 +20,19 @@ Each line in the raw dataset contains the text, question, answer delimited by "|
 
 ### QuasarT
 
-Currently, we have created two different sets of indices for QuasarT-Short and QuasarT-Long. The former only has sentence-level information in the raw dataset so we have only created an article-level index where each article is actually a single sentence. Thus, no sentence-level index exists for QuasarT-Short. On the other hand, the Long version has been dealt similarly as the past datasets, where we obtained the raw text in a json format and split them into sentences. There is no title information for each article.
+Currently, we have created two different sets of indices for QuasarT-Short and QuasarT-Long. The former only has sentence-level information in the raw dataset so we have only created an article-level index where each article is actually a single sentence. Thus, no sentence-level index exists for QuasarT-Short. On the other hand, the Long version has been dealt similarly as the previous datasets, where we obtained the raw text in a json format and split them into sentences. There is no title information for each article.
+
+### Usage
+
+To create an index, you can run the following command:
+
+`java -cp lucene.jar peterkim.wikilucene.Index <raw data path> <dataset> <create sentence index>`
+
+* <raw data path> - Path where the raw data is stored
+* <dataset> - the dataset and respective index to query. Must be one of the following "squad", "quasart", "searchqa", "triviaqa"
+* <create sentence index> - Boolean argument indicated by "t" or "f" to create a sentence-level or article-level index, respectively.
+
+E.g. `java -cp lucene.jar peterkim.wikilucene.Index ./squad_extracted squad f` -> creates an article-level index for the SQuAD dataset at the path ./squad_index_article
 
 ## Querying
 
@@ -28,13 +40,13 @@ Currently, we have created two different sets of indices for QuasarT-Short and Q
 
 To start the gateway server that provides the python interface to our Java-based Lucene component, run the following command:
 
-`java -cp lucene.jar`
+`java -cp lucene.jar peterkim.wikilucene.EntryPoint`
 
 We use Py4J to provide the bridge and further information on the library can be found [here](https://www.py4j.org/faq.html)
 
 ### Usage
 
-After starting the server successfully, you are ready to start calling our Lucene component. Simply import "lucene2ranker.py" and call the function "processQueries(qlist)". qlist is a list of queries structured as such "question unique id|query|dataset|topNArticles|articleSimilarityFunction|topNSentences|sentenceSimilarityFunction|contextA|contextB". E.g."0|what is nlp?|squad|10|tf25|5|tfidf|2|1"
+After starting the server successfully, you are ready to start calling the Lucene component. Simply import "lucene2ranker.py" and call the function "processQueries(qlist)". qlist is a list of queries structured as such "question unique id|query|dataset|topNArticles|articleSimilarityFunction|topNSentences|sentenceSimilarityFunction|contextA|contextB". E.g."0|what is nlp?|squad|10|tf25|5|tfidf|2|1"
 
 * question unique id - This must be a unique identifier for each query
 * query - the query text
@@ -54,10 +66,10 @@ The following is the list of similarity functions you can provide for "articleSi
 
 * tfidf - Lucene's default TFIDF scoring method
 * bm25 - Lucene's BM25 method
-* tf25 - Combines TFIDF's TF and BM25's IDF i.e. the tfidf score = log(tf + 1) * log((N - Nt + 0.5) / (Nt + 0.5)) where tf, N, Nt are term frequency in document, number of documents, number of occurences of term in all documents, respectively. See implementation (here)[https://github.com/peterkim95/lucene-wikipedia/blob/master/src/main/java/peterkim/wikilucene/MyTFIDFSimilarity.java#L10]
+* tf25 - Combines TFIDF's TF and BM25's IDF i.e. tfidf score = log(tf + 1) * log((N - Nt + 0.5) / (Nt + 0.5)) where tf, N, Nt are term frequency in document, number of documents, number of occurrences of term in all documents, respectively. See implementation [here](https://github.com/peterkim95/lucene-wikipedia/blob/master/src/main/java/peterkim/wikilucene/MyTFIDFSimilarity.java#L10)
 * simple - every overlapping term returns a score of 1
 * simplelen - extension of simple method but the score is divided by the document length i.e. shorter length documents are preferred
 
 ### QuasarT-Short
 
-If you want to query the QuasarT-Short index, you can call "processQueriesForQuasartShort(qlist)". The format of qlist is identical to above. However, this will return a list of relevant sentences, vs. a list of multi-sentence contexts, for a given query. For example, the query "0|what is nlp?|squad|10|tf25|5|tfidf|2|1" will return the top 10 sentences using TF25.
+If you want to query the QuasarT-Short index, you can call "processQueriesForQuasartShort(qlist)". The format of qlist is identical to above. However, this will return a list of relevant sentences, as opposed to a list of multi-sentence contexts. For example, the query "0|what is nlp?|squad|10|tf25|5|tfidf|2|1" will return the top 10 sentences using TF25.

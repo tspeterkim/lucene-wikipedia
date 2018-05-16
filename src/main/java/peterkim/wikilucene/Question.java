@@ -45,8 +45,8 @@ public class Question {
 		String[] datasets = {"squad", "triviaqa", "searchqa", "quasart"};
 		for (String ds : datasets) {
 			try {
-				articleReader.put(ds, DirectoryReader.open(FSDirectory.open(new File("/if5/wua4nw/open_domain_qa/data/" + ds + "luceneindex_all"))));
-				sentenceReader.put(ds, DirectoryReader.open(FSDirectory.open(new File("/if5/wua4nw/open_domain_qa/data/" + ds + "luceneindex_all_sentence"))));
+				articleReader.put(ds, DirectoryReader.open(FSDirectory.open(new File("/if5/wua4nw/open_domain_qa/data/" + ds + "_index_article"))));
+				sentenceReader.put(ds, DirectoryReader.open(FSDirectory.open(new File("/if5/wua4nw/open_domain_qa/data/" + ds + "_index_sentence"))));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -54,7 +54,7 @@ public class Question {
 		
 		// quasart_short article index TODO: will most likely change later
 		try {
-			articleReader.put("quasart_short", DirectoryReader.open(FSDirectory.open(new File("/if5/wua4nw/open_domain_qa/data/quasart_short_luceneindex_all"))));
+			articleReader.put("quasart_short", DirectoryReader.open(FSDirectory.open(new File("/if5/wua4nw/open_domain_qa/data/quasartshort_index_article"))));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -123,7 +123,6 @@ public class Question {
 			r.add(dd.get("text"));
 		}
 		
-		System.out.println("------------------");
 		return r;
 	}
 	
@@ -182,7 +181,6 @@ public class Question {
     			}
     			finalSentences.add(sents);
 		}
-		System.out.println("------------------");
 		return finalSentences;
 	}
 	

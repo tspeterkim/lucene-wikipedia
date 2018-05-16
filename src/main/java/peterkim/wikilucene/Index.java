@@ -52,30 +52,13 @@ public class Index {
 	private int searchqaIndex = 0;
 	private IndexWriter indexWriter = null;
 	private Gson gson = null;
-	private HashMap<String, Boolean> targetMap = new HashMap<String, Boolean>();
 	private int totalIndexedItems = 0;
 
-	public Index(String luceneFolderPath, String filterPath, String dataset) throws IOException {
+	public Index(String dataset, boolean createSentenceIndex) throws IOException {
 		this.dataset = dataset;
-		Directory indexDir = FSDirectory.open(new File(luceneFolderPath));		
+		Directory indexDir = FSDirectory.open(new File(dataset + "_index_" + (createSentenceIndex ? "sentence" : "article")));		
 		indexWriter = new IndexWriter(indexDir, new IndexWriterConfig(Version.LATEST, MyAnalyzer.getAnalyzer()));
-		
-		gson = new Gson();
-		
-		// Initialize filter titles
-		BufferedReader inputReader = new BufferedReader(new FileReader(new File(filterPath)));
-		
-		// Build target article map
-		String aLine;
-		while ((aLine = inputReader.readLine()) != null) {
-			targetMap.put(aLine, false);
-		}
-		
-		if (!targetMap.isEmpty())
-			System.out.println("Filtering articles...");
-		
-		inputReader.close();
-
+		gson = new Gson();		
 	}
 	
 	public List<String> splitSentenceStanford(String text) {
@@ -175,25 +158,14 @@ public class Index {
 				searchqaIndex++;
 			}
 			
-			if (targetMap.isEmpty()) { // no filtering i.e. index everything
-				int i = 0;
-				for (String sent : sents) {
-					indexSentence(id, i, sent);
-					i++;
-				}
-				totalIndexedItems++;
-				System.out.println("Indexed " + id + ". " + totalIndexedItems + " items indexed.");
-				continue;
+			int i = 0;
+			for (String sent : sents) {
+				indexSentence(id, i, sent);
+				i++;
 			}
+			totalIndexedItems++;
+			System.out.println("Indexed " + id + ". " + totalIndexedItems + " items indexed.");
 			
-			if (targetMap.containsKey(title)) {
-				int i = 0;
-				for (String sent : sents) {
-					indexSentence(id, i, sent);
-					i++;
-				}
-				targetMap.put(title, true); // indicate article has been indexed
-			}
 		}
 		
 		inputReader.close();
@@ -320,36 +292,16 @@ public class Index {
 				searchqaIndex++;
 			}
 			
-			if (targetMap.isEmpty()) { // no filtering i.e. index everything
-				indexArticle(id, title, text); 
-				continue;
-			}
-			
-			if (targetMap.containsKey(title)) {
-				indexArticle(id, title, text);
-				targetMap.put(title, true); // indicate article has been indexed
-			}
+			indexArticle(id, title, text); 
 		}
 		
 		inputReader.close();
 	}
-	
-	public void checkTargetFulfilled() {
-		System.out.println("Indexed " + totalIndexedItems + " Items. Not indexed articles:");
-		for (Map.Entry<String, Boolean> entry : targetMap.entrySet()) {
-			if (!entry.getValue()) {
-				System.out.println(entry.getKey());
-			}
-		}
-	}
-	
 
 	public static void main(String[] args) throws IOException {
-		String filterPath = args[0];
-		String luceneFolderPath = args[1];
-		String extractedPath = args[2];
-		String dataset = args[3];
-		boolean indexSentence = (args[4].equals("t"));
+		String extractedPath = args[0];
+		String dataset = args[1];
+		boolean indexSentence = (args[2].equals("t"));
 		
 //		String filterPath = "/Users/Peter/Documents/input.txt";
 //		String luceneFolderPath = "/Users/Peter/Documents/wikiluceneindexsent";
@@ -359,7 +311,7 @@ public class Index {
 		
 		System.out.println("[ Indexing " + (indexSentence ? "sentences" : "articles") + " for " + dataset + " dataset ]");
 		
-		Index handler = new Index(luceneFolderPath, filterPath, dataset);
+		Index handler = new Index(dataset, indexSentence);
 		Collection<File> extractedFiles = FileUtils.listFiles(new File(extractedPath), HiddenFileFilter.VISIBLE, TrueFileFilter.INSTANCE);
 		
 		for (File f : extractedFiles) {
@@ -371,11 +323,7 @@ public class Index {
 		
 		handler.indexWriter.close();
 		
-		System.out.println("----------------------------------------");
-		System.out.println("Indexing Successful!");
-		
-		handler.checkTargetFulfilled();
-		
+		System.out.println("- Indexing Successful! -");
 	}
 
 }
