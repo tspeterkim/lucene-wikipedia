@@ -16,7 +16,7 @@ The raw dataset is split into two sources: web and wikipedia. For our open-domai
 
 ### SearchQA
 
-Each line in the raw dataset contains the text, question, answer delimited by "|||". The text is composed of markups as such: "<S> I am a sentence </S>". Our Lucene code extracts the texts within each sentence markup and concatenates all these sentences to create an article text.
+Each line in the raw dataset contains the text, question, answer delimited by "|||". The text is composed of markups as such: "< s > I am a sentence < / s >" (ignore spaces in the markup - they were put in because github markdown translates them into <s>strikethrough</s> text). Our Lucene code extracts the texts within each sentence markup and concatenates all these sentences to create an article text.
 
 ### QuasarT
 
